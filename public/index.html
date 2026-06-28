@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automated Downloader</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background-color: #f4f7f6;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      margin-top: 0;
+      color: #333;
+    }
+    p {
+      color: #666;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-top: 10px;
+      color: #555;
+    }
+    input[type="url"] {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0 15px 0;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    .form-group {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .form-field {
+      flex: 1;
+    }
+    .form-field-small {
+      width: 100px;
+    }
+    .form-field-medium {
+      width: 130px;
+    }
+    .form-field input, .form-field-small input, .form-field-medium input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+      font-weight: bold;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .status-box {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #e8f0fe;
+      border-left: 5px solid #1a73e8;
+      border-radius: 4px;
+      display: none;
+    }
+    .status-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(26,115,232,.3);
+      border-radius: 50%;
+      border-top-color: #1a73e8;
+      animation: spin 1s ease-in-out infinite;
+      vertical-align: middle;
+      margin-right: 10px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .error-box {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #fce8e6;
+      border-left: 5px solid #d93025;
+      color: #a82e2e;
+      border-radius: 4px;
+      display: none;
+    }
+    .screenshot-gallery {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+    .screenshot-box {
+      text-align: center;
+      border: 1px solid #ddd;
+      padding: 5px;
+      border-radius: 4px;
+      background: #fafafa;
+    }
+    .screenshot-box img {
+      width: 100px;
+      height: auto;
+      border: 1px solid #ccc;
+      display: block;
+      margin-top: 3px;
+    }
+    .notes {
+      margin-top: 25px;
+      font-size: 13px;
+      color: #777;
+      line-height: 1.4;
+      border-top: 1px solid #eee;
+      padding-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Automated Downloader</h1>
+    <p>Enter the URL of the webpage, configure the click pattern, and click start. The backend server will load the browser, click the target button, and return the downloaded file.</p>
+    
+    <form id="download-form">
+      <label for="url">Webpage URL:</label>
+      <input type="url" id="url" name="url" placeholder="https://example.com/download-page" required>
+      
+      <div class="form-group">
+        <div class="form-field">
+          <label for="selector">Button/Link Text:</label>
+          <input type="text" id="selector" name="selector" value="Download Server 1" placeholder="e.g. Download Server 1" required>
+        </div>
+        <div class="form-field-small">
+          <label for="clicks">Clicks:</label>
+          <input type="number" id="clicks" name="clicks" value="3" min="1" max="10" required>
+        </div>
+        <div class="form-field-medium">
+          <label for="delay">Delay (ms):</label>
+          <input type="number" id="delay" name="delay" value="2000" min="500" max="10000" step="500" required>
+        </div>
+      </div>
+      
+      <button type="submit">Start Automated Download</button>
+    </form>
+
+    <!-- Status Box -->
+    <div id="status-container" class="status-box">
+      <div class="status-spinner"></div>
+      <span id="status-message" style="font-weight: bold; color: #1c3d5a;">Initializing request...</span>
+    </div>
+
+    <!-- Error Box -->
+    <div id="error-container" class="error-box">
+      <strong style="display:block; font-size:16px; margin-bottom: 5px;">Automation Failed</strong>
+      <span id="error-details">An error occurred during download.</span>
+      
+      <div id="debug-gallery" style="margin-top: 15px; display: none;">
+        <strong>Debug Screenshots (click to view full size):</strong>
+        <div class="screenshot-gallery">
+          <div class="screenshot-box">
+            <span style="font-size: 10px; font-weight: bold;">Loaded</span>
+            <a href="/debug/loaded.png" target="_blank"><img id="img-loaded" src="" onerror="this.parentElement.parentElement.style.display='none'"></a>
+          </div>
+          <div class="screenshot-box">
+            <span style="font-size: 10px; font-weight: bold;">Click 1</span>
+            <a href="/debug/click_1.png" target="_blank"><img id="img-click1" src="" onerror="this.parentElement.parentElement.style.display='none'"></a>
+          </div>
+          <div class="screenshot-box">
+            <span style="font-size: 10px; font-weight: bold;">Click 2</span>
+            <a href="/debug/click_2.png" target="_blank"><img id="img-click2" src="" onerror="this.parentElement.parentElement.style.display='none'"></a>
+          </div>
+          <div class="screenshot-box">
+            <span style="font-size: 10px; font-weight: bold;">Click 3</span>
+            <a href="/debug/click_3.png" target="_blank"><img id="img-click3" src="" onerror="this.parentElement.parentElement.style.display='none'"></a>
+          </div>
+          <div class="screenshot-box" style="border-color: #d93025; background: #fff5f5;">
+            <span style="font-size: 10px; font-weight: bold; color: #d93025;">Error</span>
+            <a href="/debug/error.png" target="_blank"><img id="img-error" src="" onerror="this.parentElement.parentElement.style.display='none'"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <strong>How it works:</strong>
+      <ol style="margin-top: 5px; padding-left: 20px;">
+        <li>Loads the URL in a headless browser on the server.</li>
+        <li>Locates the link or button matching your specified text (e.g. "Download Server 1").</li>
+        <li>Clicks the button, waits for the configured delay, and repeats the click sequence.</li>
+        <li>Streams the download file progress in real-time, preventing browser timeouts.</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('download-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const url = document.getElementById('url').value;
+      const selector = document.getElementById('selector').value;
+      const clicks = document.getElementById('clicks').value;
+      const delay = document.getElementById('delay').value;
+
+      const statusContainer = document.getElementById('status-container');
+      const statusMessage = document.getElementById('status-message');
+      const errorContainer = document.getElementById('error-container');
+      const debugGallery = document.getElementById('debug-gallery');
+
+      statusContainer.style.display = 'block';
+      errorContainer.style.display = 'none';
+      debugGallery.style.display = 'none';
+      statusMessage.textContent = 'Launching automation browser on server...';
+
+      try {
+        const queryParams = new URLSearchParams({ url, selector, clicks, delay });
+        const response = await fetch(`/start-download?${queryParams.toString()}`);
+        
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(errText || 'Failed to start download');
+        }
+        
+        const data = await response.json();
+        const jobId = data.jobId;
+        
+        // Start status polling
+        const pollInterval = setInterval(async () => {
+          try {
+            const statusRes = await fetch(`/status?jobId=${jobId}`);
+            if (!statusRes.ok) return;
+            
+            const job = await statusRes.json();
+            
+            if (job.status === 'failed') {
+              clearInterval(pollInterval);
+              statusContainer.style.display = 'none';
+              errorContainer.style.display = 'block';
+              document.getElementById('error-details').textContent = job.error || 'Automation failed';
+              
+              // Load images
+              const timestamp = Date.now();
+              document.getElementById('img-loaded').src = `/debug/loaded.png?t=${timestamp}`;
+              document.getElementById('img-click1').src = `/debug/click_1.png?t=${timestamp}`;
+              document.getElementById('img-click2').src = `/debug/click_2.png?t=${timestamp}`;
+              document.getElementById('img-click3').src = `/debug/click_3.png?t=${timestamp}`;
+              document.getElementById('img-error').src = `/debug/error.png?t=${timestamp}`;
+              debugGallery.style.display = 'block';
+              
+            } else if (job.status === 'ready') {
+              clearInterval(pollInterval);
+              statusMessage.textContent = 'File is ready! Transferring download to browser...';
+              
+              // Direct browser download
+              window.location.href = `/get-file?jobId=${jobId}`;
+              
+              setTimeout(() => {
+                statusContainer.style.display = 'none';
+              }, 4000);
+            } else {
+              // Show ongoing status message
+              statusMessage.textContent = job.message || 'Processing...';
+            }
+          } catch (pollErr) {
+            console.error('Polling error:', pollErr);
+          }
+        }, 1500);
+
+      } catch (err) {
+        statusContainer.style.display = 'none';
+        errorContainer.style.display = 'block';
+        document.getElementById('error-details').textContent = err.message;
+      }
+    });
+  </script>
+</body>
+</html>
